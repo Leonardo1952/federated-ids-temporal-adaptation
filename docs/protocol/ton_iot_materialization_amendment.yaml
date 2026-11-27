@@ -1,0 +1,41 @@
+stage: ton-materialization-amendment
+status: frozen
+dataset: TON_IoT
+decision: frozen
+contract_frozen: true
+freeze_review_passed: true
+frozen_at_utc: "2026-09-30T15:33:43.0265853Z"
+ready_for_real_materialization: true
+real_materialization_performed: false
+ready_for_ton_initial_state_bank: false
+ready_for_ton_main_execution: false
+full_160_run_matrix_ready: false
+ready_for_confirmation_campaign: false
+metadata_only: true
+models:
+  - logistic_regression
+  - mlp_64_32
+seeds:
+  - 20260920
+  - 20260921
+  - 20260922
+  - 20260923
+  - 20260924
+strategies:
+  - static_global
+  - local_only
+  - continuous_fedavg
+  - continuous_fedprox
+  - continuous_fedyogi
+  - periodic_budget_matched
+  - feddrift_eager
+  - triggered_page_hinkley_global
+outputs:
+  report: reports/ton_iot_main_matrix_materialization_amendment
+frozen_lineage:
+  protocol_v2: configs/protocol_v2.yaml
+  cost_addendum: configs/protocol_v2_cost_addendum.yaml
+  matrix_reconciliation: configs/gotham_protocol_matrix_reconciliation.yaml
+  model_contract: configs/gotham_model_training_serialization.yaml
+  readiness_audit: reports/ton_iot_main_matrix_readiness
+  readiness_preservation: reports/ton_iot_main_matrix_readiness.precheckpointrepair

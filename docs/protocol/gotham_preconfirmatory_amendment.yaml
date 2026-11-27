@@ -1,0 +1,22 @@
+schema_version: 1
+amendment_type: NON_METHODOLOGICAL_ARTIFACT_RECOVERY
+base_protocol_hash: da39d687573b2fa0e3d3fd8caf651a783a1b6775f159c7b1874cceb706679ad4
+expected_model_fingerprint: 81dfdebf8301a12c0e95f621ca4a90aa20bbfb5722ef0aff04a479fd771fb9d5
+source_stage: gotham-baseline
+source_commit: 854c2ed137e19c3e6bf965a1f34024b17a23c9d2
+source_tag: gotham-baseline-gotham-development-baseline-complete
+partition: development
+windows:
+  start: 1
+  end: 29
+seed: 20260912
+learning_rate: 0.12
+l2: 0.0001
+local_epochs: 1
+preprocessing_hash: f2633d1f1eb0f30bed02245baae001da6270b46d59a455ed16c69d2fbc0a9fb9
+confirmation_accessed: false
+scientific_protocol_changed: false
+scientific_parameters_changed: false
+outputs:
+  artifact_dir: results/gotham_initial_model_recovery
+  report_dir: reports/gotham_initial_model_recovery

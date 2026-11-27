@@ -1,0 +1,118 @@
+schema_version: 1
+status: frozen
+ready_for_confirmation: true
+protocol_version: gotham-preconfirmatory-protocol
+dataset:
+  name: GOTHAM
+  materialized_root: data/processed/gotham_confirmatory_v1
+  total_events: 35134281
+  development_events: 7026857
+  confirmation_events: 28107424
+  supervised_events: 35126611
+  unknown_events: 7670
+  windows: {total: 142, development: 29, confirmation: 113}
+features:
+  order: [frame.len, ip.flags, ip.proto, tcp.flags]
+  tcp_flags_structural_missing_sentinel: -1
+  feature_count: 4
+temporal:
+  cutoff_timestamp_ns: 1737130976125304000
+  equal_timestamp_groups_atomic: true
+  evaluation_order: predict_score_trigger_train_aggregate_adapt_next_window
+preprocessing:
+  method: standardization
+  ddof: 0
+  fit_partition: development
+  parameters_sha256: f2633d1f1eb0f30bed02245baae001da6270b46d59a455ed16c69d2fbc0a9fb9
+  confirmation_refit_forbidden: true
+  zero_variance_scale: 1.0
+unknown_policy:
+  preserved: true
+  eligible_for_training: false
+  eligible_for_metric: false
+  eligible_for_supervised_detector: false
+seed: 20260912
+model:
+  kind: logistic_regression_reference
+  local_epochs: 1
+  learning_rate: 0.12
+  l2: 0.0001
+  classification_threshold: 0.5
+federation:
+  selection_policy: all_eligible
+  states: [registered, available, eligible, selected, scheduled, trained, contributing]
+  invariants: [eligible_subset_available, selected_subset_eligible, scheduled_subset_selected, trained_subset_scheduled, contributing_subset_trained]
+  aggregation: weighted_fedavg
+  weight: valid_supervised_examples
+detector:
+  signals: [frame.len, ip.flags, ip.proto, tcp.flags, client_population]
+  availability: ONLINE_UNLABELED
+  labels_used_for_detection: false
+  labels_used_for_posthoc_evaluation: true
+  metric_frame_len: mean_absolute_quantile_difference_101_fixed_quantiles
+  metric_discrete: jensen_shannon_log2_union_support
+  metric_client_population: one_minus_jaccard
+  threshold_method: upper_quantile_95_calibration_windows_1_23
+  thresholds:
+    frame.len: 111.30564356435647
+    ip.flags: 0.000010606982133193145
+    ip.proto: 0.013973321365299173
+    tcp.flags: 0.016048387294135324
+    client_population: 0.02564102564102566
+  warning_operator: score_greater_than_threshold
+  trigger_operator: at_least_two_warning_signals
+  persistence: 1
+  cooldown: 0
+adaptation:
+  policy: trigger_conditioned_extra_local_pass
+  normal_local_epochs: 1
+  extra_local_epochs_on_trigger: 1
+  effective_model_timing: next_window
+  consecutive_trigger_policy: adapt_each_trigger
+  unknown_included: false
+evaluation:
+  metrics: [accuracy, precision, recall, f1, macro_f1, support, TP, TN, FP, FN]
+  protocol: predict_score_before_supervised_update
+  baseline_trajectory: frozen_non_adaptive
+  adapted_trajectory: frozen_trigger_conditioned
+boundary:
+  status: resolved
+  confirmation_initial_model_source: gotham-baseline development baseline final model
+  confirmation_initial_model_window: 29
+  confirmation_initial_model_fingerprint: 81dfdebf8301a12c0e95f621ca4a90aa20bbfb5722ef0aff04a479fd771fb9d5
+  baseline_initial_model_equals_adapted_initial_model: true
+  development_adapted_final_model_carried_into_confirmation: false
+  detector_state_at_boundary: NORMAL
+  pending_warning: false
+  pending_trigger: false
+  pending_adaptation: false
+  cooldown_remaining: 0
+  previous_window_reference: development_window_29
+  fixed_reference_used_for_detection: false
+  carry_over_reset:
+    baseline_model: carry_final_window_29
+    adapted_model: reset_to_final_window_29
+    detector_thresholds: carry
+    detector_rules: carry
+    detector_operational_state: reset_normal
+    previous_feature_distributions: carry_development_window_29
+    previous_client_population: carry_development_window_29
+    warning_pending: reset
+    trigger_pending: reset
+    cooldown: 0
+    persistence_configuration: carry_1
+    adaptation_policy: carry
+    pending_adaptation: reset_none
+    classification_threshold: carry_0.5
+    seed: carry_20260912
+    preprocessing: carry_frozen_parameters
+    unknown_policy: carry
+  baseline_reacts_to_trigger: false
+  adapted_reacts_to_trigger: true
+  model_trajectories_independent_after_initialization: true
+  open_questions: []
+governance:
+  confirmation_accessed: false
+  confirmation_executed: false
+  deviation_policy_required: true
+  no_post_hoc_method_changes: true

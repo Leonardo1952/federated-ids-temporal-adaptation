@@ -1,0 +1,245 @@
+schema_version: 1
+addendum_id: protocol-v2-cost-accounting
+status: frozen
+frozen_at_utc: 2026-09-23T20:30:02Z
+scope: processing_availability_participation_and_cost_attribution
+
+canonical_serialization:
+  encoding: UTF-8
+  byte_order_mark: absent
+  newline: LF
+  terminal_newline: exactly_one
+  scientific_identity: sha256_of_canonical_serialization
+  checkout_newlines_accepted: [LF, CRLF]
+  raw_windows_checkout_hash_is_scientific_identity: false
+
+lineage:
+  commit_base: 5e52ed5056f1beb7d9d0579568b0f076eecdb169
+  tag_base: gotham-admission
+  original_protocol_path: configs/protocol_v2.yaml
+  original_protocol_sha256: 5e3c936212342bdade7bb38a409e6f65450a9a9482c4b4a579031f70dbe91db6
+  original_protocol_tag: protocol-v2-frozen
+  gotham_decision: admitted_with_restrictions
+  gotham_manifest_sha256: 036517f54e36d1c26df11fd189427c9b9702eaff4548ffc8668b514658f276be
+  gotham_primary_feature_sha256: f64aa69435e17bb5851a7541421c9f4fc7a09f4e64fea20c6de3a7b8d8e4814d
+  strictly_additive: true
+
+frozen_protocol_projection:
+  primary_strategy: triggered_page_hinkley_global
+  primary_comparator: continuous_fedavg
+  datasets: [TON_IoT, GothamDataset2025]
+  models: [logistic_regression, mlp_64_32]
+  seeds: [20260920, 20260921, 20260922, 20260923, 20260924]
+  strategies:
+    - static_global
+    - local_only
+    - continuous_fedavg
+    - continuous_fedprox
+    - continuous_fedyogi
+    - periodic_budget_matched
+    - feddrift_eager
+    - triggered_page_hinkley_global
+  noninferiority_margin: -0.02
+  minimum_primary_runs: 160
+  paired_unit: [dataset, model, seed, window_id]
+  statistical_method: paired_temporal_block_bootstrap
+  primary_metrics: [macro_f1, normal_recall, false_positive_rate, attack_recall, pr_auc, balanced_accuracy]
+  secondary_metrics: [worst_client_macro_f1, client_macro_f1_gap, lower_tail_10_percent_macro_f1, detection_delay, alarm_precision, drift_recall, false_alarms_per_million_events, model_communication_bytes, training_seconds, inference_seconds, peak_memory_bytes, client_participation_rate]
+  development_partition: development_prefix_fraction_0.20
+  confirmatory_partition: confirmation_suffix_fraction_0.80
+  temporal_rules:
+    timestamp_ties_are_atomic: true
+    labels_define_boundaries: false
+    client_ids_define_boundaries: false
+    boundary_rounding: first_atomic_timestamp_group_reaching_target
+  causal_rules:
+    prediction_precedes_label_observation: true
+    scoring_precedes_current_window_update: true
+    future_windows_loaded_early: false
+    campaign_labels_available_to_detector: false
+    controlled_drift_labels_available_to_detector: false
+    identifiers_are_model_features: false
+    empty_client_window_is_a_concept: false
+  original_hypotheses_preserved: true
+
+client_states:
+  registered_client: identity belongs to the dataset
+  available_client: has causally available events in the temporal unit
+  eligible_client: available and satisfies structural participation rules
+  scheduled_client: chosen by a deterministic strategy-independent schedule
+  trained_client: actually executed local training
+  contributing_client: produced an update incorporated by an aggregation
+  evaluated_client: has eligible events for the requested metric
+  invariants:
+    registered_implies_available: false
+    available_implies_trained: false
+    scheduled_implies_trained: false
+    inactive_client_generates_update: false
+    availability_depends_on_label_model_seed_or_strategy: false
+    paired_eligibility_schedule_equal: true
+    strategy_training_difference_only_from_adaptation_rule: true
+    strategy_receives_additional_events_or_clients: false
+  gotham:
+    registered_clients: 78
+    development_active_clients: 78
+    confirmation_active_clients: 8
+    federation_regime: time_varying_active_client_population
+
+communication:
+  historical_metric: model_state_communication_bytes
+  historical_relation: download plus upload of the float64 model state for every effectively participating client
+  scientific_term: accounted_federated_communication_volume
+  model_state_dtype: float64
+  model_size_rule: exact serialized numeric model-state array nbytes
+  primary_components: [uplink_model_bytes, downlink_model_bytes]
+  optional_observed_components: [control_message_bytes, detector_signal_bytes]
+  model_state_communication_bytes_rule: uplink_model_bytes + downlink_model_bytes
+  accounted_control_message_bytes: null_when_not_measured
+  accounted_detector_signal_bytes: null_when_not_measured
+  accounted_communication_bytes_rule: model state bytes plus only optional components actually measured
+  compatibility_alias:
+    total_communication_bytes: accounted_communication_bytes
+    meaning: total components accounted by the experimental model, not total physical network traffic
+  unmeasured_network_overhead: not_measured
+  unmeasured_components_are_zero: false
+  total_physical_network_traffic_claimed: false
+  real_bandwidth_measured: false
+  broadcast_rule: count one downlink model payload per actual recipient
+  inactive_client_rule: zero bytes and no synthetic message
+  no_adaptation_rule: zero model bytes unless an independently observed control message exists
+  protocol_overhead: not_observed_not_invented
+  excluded_unmeasured_overhead: [TCP_IP_headers, TLS, retransmissions, physical_layer_overhead]
+  metrics:
+    - uplink_model_bytes
+    - downlink_model_bytes
+    - model_state_communication_bytes
+    - control_message_bytes
+    - detector_signal_bytes
+    - accounted_control_message_bytes
+    - accounted_detector_signal_bytes
+    - accounted_communication_bytes
+    - total_communication_bytes
+    - communication_events
+    - bytes_per_available_client
+    - bytes_per_trained_client
+    - bytes_per_adaptation
+    - cumulative_bytes_by_window
+
+processing:
+  principal_measurement: objective_algorithmic_training_work
+  no_composite_score: true
+  metrics:
+    local_training_invocations: client starts an actual local training routine
+    local_examples_processed: observations consumed by training, recounted for every epoch
+    local_batches_processed: minibatches actually consumed
+    local_optimizer_steps: optimizer calls that alter parameters
+    server_aggregation_count: global aggregations actually executed
+    client_updates_generated: local updates actually produced
+    client_updates_aggregated: local updates actually incorporated
+  derived_forms: [cumulative_by_window, per_available_client, per_trained_client, per_adaptation]
+
+descriptive_runtime:
+  metrics: [wall_clock_seconds, process_cpu_seconds, peak_rss_bytes, accelerator_time_seconds, hardware_description, software_environment]
+  wall_clock_is_primary_processing_evidence: false
+  cross_hardware_time_requires_caveat: true
+  energy_conversion_allowed: false
+  energy_reduction_claimed: false
+  small_time_difference_selects_strategy: false
+
+adaptation:
+  metrics: [detector_alarm_count, operational_alarm_count, adaptation_trigger_count, adaptation_started_count, adaptation_completed_count, local_training_invocations, server_aggregation_count, model_version_count]
+  maximum_adaptations_per_stream_per_window: 1
+  raw_alarms_preserved: true
+  operational_alarms_drive_decisions: true
+  campaign_or_label_triggers_adaptation: false
+  unknown_enters_error_stream_or_triggers_alarm: false
+  continuous_update_depends_on_alarm: false
+  frozen_trains_after_bootstrap: false
+
+cost_attribution:
+  pairing_keys: [dataset, model, seed, temporal_partition, events, registered_clients, availability_schedule, eligibility_schedule, preprocessing, non_strategy_configuration]
+  raw_strategy_cost: total actually observed cost for a strategy
+  availability_controlled_cost_difference: paired difference under the same available-client schedule
+  trigger_attributable_reduction: triggered reduction versus continuous FedAvg after availability-controlled pairing
+  counterfactual_not_executed_is_estimated: false
+  denominator_zero: unavailable_with_reason
+  reductions:
+    communication_reduction: 1 - triggered_total_bytes / continuous_total_bytes
+    training_invocation_reduction: 1 - triggered_local_training_invocations / continuous_local_training_invocations
+    example_processing_reduction: 1 - triggered_local_examples_processed / continuous_local_examples_processed
+    optimizer_step_reduction: 1 - triggered_local_optimizer_steps / continuous_local_optimizer_steps
+    aggregation_reduction: 1 - triggered_server_aggregation_count / continuous_server_aggregation_count
+
+hypotheses:
+  H1:
+    endpoint: delta_macro_f1
+    definition: macro_f1_triggered - macro_f1_continuous
+    strategy: triggered_page_hinkley_global
+    comparator: continuous_fedavg
+    margin: -0.02
+    method: paired_temporal_block_bootstrap
+    rule: lower_confidence_bound_greater_than_margin
+  H2:
+    endpoint: accounted_communication_bytes
+    publication_term: accounted federated communication volume
+    direction: triggered_less_than_continuous
+  H3:
+    endpoints: [adaptation_completed_count, server_aggregation_count]
+    direction: triggered_less_than_continuous
+  H4:
+    endpoints: [local_training_invocations, local_examples_processed, local_optimizer_steps, server_aggregation_count]
+    direction: coherent_reduction_reported_separately
+  global_support_requires: [H1_noninferiority, communication_reduction, adaptation_reduction, coherent_predefined_processing_reduction, identical_availability_schedule]
+  composite_score: none
+
+event_schema:
+  - {name: run_id, type: string, unit: identifier, nullable: false}
+  - {name: dataset, type: string, unit: identifier, nullable: false}
+  - {name: model, type: string, unit: identifier, nullable: false}
+  - {name: seed, type: integer, unit: seed, nullable: false}
+  - {name: strategy, type: string, unit: identifier, nullable: false}
+  - {name: window_id, type: integer, unit: temporal_unit, nullable: false}
+  - {name: event_time, type: timestamp_utc, unit: ns_or_declared_precision, nullable: false}
+  - {name: registered_clients, type: integer, unit: clients, nullable: false}
+  - {name: available_clients, type: integer, unit: clients, nullable: false}
+  - {name: eligible_clients, type: integer, unit: clients, nullable: false}
+  - {name: scheduled_clients, type: integer, unit: clients, nullable: false}
+  - {name: trained_clients, type: integer, unit: clients, nullable: false}
+  - {name: contributing_clients, type: integer, unit: clients, nullable: false}
+  - {name: evaluated_clients, type: integer, unit: clients, nullable: false}
+  - {name: detector_alarm_count, type: integer, unit: alarms, nullable: false}
+  - {name: operational_alarm_count, type: integer, unit: alarms, nullable: false}
+  - {name: adaptation_started, type: boolean, unit: flag, nullable: false}
+  - {name: adaptation_completed, type: boolean, unit: flag, nullable: false}
+  - {name: local_training_invocations, type: integer, unit: invocations, nullable: false}
+  - {name: local_examples_processed, type: integer, unit: example_epochs, nullable: false}
+  - {name: local_batches_processed, type: integer, unit: batches, nullable: false}
+  - {name: local_optimizer_steps, type: integer, unit: steps, nullable: false}
+  - {name: client_updates_generated, type: integer, unit: updates, nullable: false}
+  - {name: client_updates_aggregated, type: integer, unit: updates, nullable: false}
+  - {name: server_aggregation_count, type: integer, unit: aggregations, nullable: false}
+  - {name: uplink_model_bytes, type: integer, unit: bytes, nullable: false}
+  - {name: downlink_model_bytes, type: integer, unit: bytes, nullable: false}
+  - {name: control_message_bytes, type: integer, unit: bytes, nullable: true}
+  - {name: total_communication_bytes, type: integer, unit: bytes, nullable: false}
+  - {name: wall_clock_seconds, type: number, unit: seconds, nullable: true}
+  - {name: process_cpu_seconds, type: number, unit: seconds, nullable: true}
+  - {name: model_version_before, type: string, unit: identifier, nullable: false}
+  - {name: model_version_after, type: string, unit: identifier, nullable: false}
+
+controls:
+  original_protocol_modified: false
+  model_training_performed: false
+  experimental_runs_performed: false
+  performance_results_loaded: false
+  evaluation_based_metric_selection_performed: false
+  hyperparameter_selection_performed: false
+  energy_consumption_measured: false
+  energy_reduction_claimed: false
+  materialization_performed: false
+  c6_started: false
+  addendum_frozen: true
+  git_staging_performed: false
+  git_commit_performed: false
+  git_tag_created: false
+  git_push_performed: false

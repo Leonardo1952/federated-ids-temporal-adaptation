@@ -1,0 +1,11 @@
+# Artifact availability and redistribution
+
+This release contains author-written code, tests, scientific configuration and documentation. It does not contain original traffic, processed shards, model parameters, detector calibration statistics, campaign manifests, run records, per-window or per-client metrics, the aggregate analysis archive, or the reference outputs. Those categories remain in the author's controlled research archive.
+
+The TON_IoT source terms establish academic research use but do not establish redistribution of derived states, calibrations, aggregate tables or files combining TON_IoT with Gotham. None entered this repository's initial Git history. The mixed aggregate archive contains small client × window cells; excluding it also avoids presenting those counts as freely redistributable. The published descriptive findings in [results.md](results.md) retain the original reported values and limitations; no cell was coarsened, recomputed or rewritten for release.
+
+Gotham 2025 is distributed by its creators under CC BY 4.0, with attribution in the [README](../README.md). The adapted model and calibration files and the materialization inventories are not included in this release. The MIT license applies only to this project's author-written material; it is not a license grant for the datasets or withheld derivatives.
+
+The public interfaces that require these external objects must fail when they are absent. `drift-analysis verify` checks the included files; `drift-analysis report` needs the authorized aggregate archive and campaign manifest; `drift-analysis compare` also needs reference outputs. The campaign additionally needs shards, states, calibrations, contracts, source and output manifests, a new environment attestation and an exact single-use authorization for this code identity. The original GO, D5 attestation and Git commit cannot authorize this distribution.
+
+The source versions and the hashes of the original sealed records remain in the private research archive. Access and redistribution of external artifacts require separate provenance and rights checks. This release makes no claim of full computational reproducibility of the 160-plan campaign or of the 13 analysis outputs from its included files alone.

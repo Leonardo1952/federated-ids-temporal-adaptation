@@ -1,0 +1,415 @@
+schema_version: 1
+stage: strategy-contract
+status: frozen
+decision: frozen
+contract_frozen: true
+metadata_only: true
+lifecycle:
+  freeze_review_passed: true
+  ready_for_development_calibration: true
+  ready_for_runner_validation: false
+  ready_for_confirmation_campaign: false
+  full_160_run_matrix_ready: false
+  development_accessed: false
+  confirmation_accessed: false
+  data_payload_accessed: false
+  detector_executed: false
+  training_performed: false
+  strategy_executed: false
+  experiment_executed: false
+  detector_calibration_started: false
+  confirmation_campaign_started: false
+  campaign_analysis_started: false
+  previous_canonical_config_sha256: 046200d261b0c27e6dbaa3e01fd524f49a172be6c70f674ad31df11623c4ce93
+  prefreeze_evidence_tree_fingerprint: f5898f66214dbeadfd1955393e3de7c4c8a57c9e97763594e585dd8bdbb3d6ef
+  prefreeze_manifest_sha256: 6b54286a240f5fb8bd19be6173c23222ec09019f885946ce0bf01b2e72496ffc
+human_decisions:
+  recorded_before_development_calibration: true
+  feddrift_eager: removed
+  replacement_strategy: triggered_page_hinkley_local
+  page_hinkley_global_abandons_post_label_binary_error: true
+  page_hinkley_signal_policy: causal_unlabeled_features_and_population_only
+  fedprox_mu: 0.01
+  fedyogi: {eta: 0.05, beta1: 0.9, beta2: 0.99, tau: 0.001}
+  periodic_budget_source: development_only_global_page_hinkley_operational_alarm_count
+  confirmation_parameter_tuning: prohibited
+  project_parameter_status: project_protocol_choices_not_universal_algorithm_defaults
+lineage:
+  base_commit: e854c1585e2f2d91ac08c54dade364e5c3414804
+  base_tag: strategy-resolution-main-matrix-strategy-resolution-proposal
+  evidence_manifest_sha256: 058d716b1c308c253ccebbe3b4cb75ef08f3dc50de8d72d643ae94cf3fe9489b
+  prior_proposal_unchanged: true
+matrix:
+  datasets: [TON_IoT, GothamDataset2025]
+  models: [logistic_regression, mlp_64_32]
+  seeds: [20260920, 20260921, 20260922, 20260923, 20260924]
+  strategies:
+    - static_global
+    - local_only
+    - continuous_fedavg
+    - continuous_fedprox
+    - continuous_fedyogi
+    - periodic_budget_matched
+    - triggered_page_hinkley_local
+    - triggered_page_hinkley_global
+  expected_runs: 160
+  runs_per_dataset: 80
+  primary_contrast: [triggered_page_hinkley_global, continuous_fedavg]
+  noninferiority_metric: Macro-F1
+  noninferiority_margin: -0.02
+  initial_states_per_dataset: 10
+  consumers_per_initial_state: 8
+  shared_initial_state_across_eight_consumers: true
+  initial_state_construction_cost_in_comparative_costs: excluded
+fedprox:
+  mu: 0.01
+  local_objective: base_supervised_objective_plus_l2_plus_proximal_term
+  proximal_term: (mu / 2) * ||theta_local - theta_global_snapshot||^2
+  snapshot: immutable_copy_of_global_parameters_at_local_invocation_start
+  snapshot_constant_through_invocation: true
+  parameter_arrays: all_trainable_arrays_including_biases
+  gradient: mu * (theta_local - theta_global_snapshot)
+  proximal_state_persists_between_invocations: false
+  l2:
+    retained_separately: true
+    scope: weight_matrices_only_as_frozen_model_contract
+    replaced_by_proximal_term: false
+    double_counted: false
+  inherited_model_contract: optimizer_batches_epochs_class_weights_clipping_and_seed_unchanged
+  server:
+    aggregation: example_weighted_completed_client_updates
+    no_contribution: no_aggregation
+    version_increment: exactly_once_per_completed_aggregation
+fedyogi:
+  parameters: {eta: 0.05, beta1: 0.9, beta2: 0.99, tau: 0.001}
+  dtype: float64
+  bias_correction: false
+  client_state: theta_i_after_local_training
+  round_global_state: theta_t_before_aggregation
+  client_delta: delta_i = theta_i - theta_t
+  aggregate_delta: delta_t = sum_i(n_i * delta_i) / sum_i(n_i)
+  arrays: all_trainable_arrays_including_biases
+  equations:
+    first_moment: m_t = beta1 * m_(t-1) + (1 - beta1) * delta_t
+    second_moment: v_t = v_(t-1) - (1 - beta2) * delta_t^2 * sign(v_(t-1) - delta_t^2)
+    model: theta_(t+1) = theta_t + eta * m_t / (sqrt(v_t) + tau)
+  initialization_per_run:
+    m_arrays: zeros_matching_parameter_shapes_float64
+    v_arrays: tau_squared_matching_parameter_shapes_float64
+    independent_key: dataset_model_seed_strategy_run_id
+    cross_run_reuse: false
+  persistence:
+    moments_persist_between_aggregations_within_run: true
+    deterministic_serialization_reload: required
+    serialization:
+      container: deterministic_npz_zip_stored
+      entry_order: lexicographic
+      timestamps: fixed
+      arrays: float64_same_shapes_as_model_parameters
+      metadata: canonical_json_with_schema_and_run_identity
+      pickle: forbidden
+    server_moments_transmitted_to_clients: false
+  no_contributor:
+    model_changes: false
+    moments_change: false
+    version_changes: false
+    aggregation_count_changes: false
+  completed_aggregation_version_increment: exactly_one
+  communication_scope: only_parameter_arrays_actually_sent_or_received
+unlabeled_signal:
+  inputs:
+    features_only: true
+    dtype: float64
+    frozen_development_preprocessing_only: true
+    labels_targets_consulted: false
+    unknown_events:
+      included_in_feature_signal: true
+      included_in_supervised_training_loss_metrics: false
+  global:
+    centroid: centroid_t = mean(X_t, axis=0)
+    feature_shift: feature_shift_t = sqrt(mean((centroid_t - centroid_(t-1))^2))
+    available_clients: A_t
+    population_shift: population_shift_t = 1 - Jaccard(A_t, A_(t-1))
+    empty_set_jaccard:
+      both_empty: 1.0
+      exactly_one_empty: 0.0
+    scales:
+      feature_scale: empirical_quantile_0.95_of_development_feature_shift
+      population_scale: empirical_quantile_0.95_of_development_population_shift
+      quantile_method: higher
+      dtype: float64
+      fit_scope: dataset_only_shared_across_models_seeds_strategies
+    combined_signal: global_signal_t = max(feature_shift_t / feature_scale, population_shift_t / population_scale)
+    first_window: initialize_centroid_and_availability_baseline_no_shift_score
+  local:
+    centroid: centroid_client_t = mean(X_client_t, axis=0)
+    shift: local_feature_shift = sqrt(mean((centroid_client_t - centroid_client_last_active)^2))
+    absent_intermediate_windows: preserve_last_active_centroid
+    first_appearance: initialize_centroid_only_no_alarm_score
+    scale:
+      value: empirical_quantile_0.95_of_all_valid_development_local_transitions
+      quantile_method: higher
+      dtype: float64
+      fit_scope: one_shared_scale_per_dataset_independent_of_model_seed_strategy_labels
+    signal: local_signal = local_feature_shift / local_feature_scale
+  zero_scale:
+    scale_zero_value_zero: ratio_zero
+    scale_zero_value_positive: explicit_scientific_error
+    epsilon_substitution: prohibited
+  insufficient_transitions:
+    global_feature_or_population_scale: explicit_scientific_error
+    local_scale: explicit_scientific_error
+page_hinkley:
+  detector: one_sided_increase
+  parameters: {delta: 0.0, lambda: 1.0, alpha: 1.0, min_instances: 3, threshold_comparison: strict_greater_than}
+  state_fields: [count, running_mean, cumulative_sum, minimum_cumulative_sum, last_statistic, alarm_count]
+  initial_state: {count: 0, running_mean: 0.0, cumulative_sum: 0.0, minimum_cumulative_sum: 0.0, last_statistic: 0.0, alarm_count: 0}
+  deterministic_mean: running_mean_t = running_mean_(t-1) + (x_t - running_mean_(t-1)) / count_t
+  update_order:
+    - increment_count
+    - update_running_mean
+    - cumulative_sum = alpha * cumulative_sum_previous + (x_t - running_mean_t - delta)
+    - update_minimum_cumulative_sum
+    - statistic = cumulative_sum - minimum_cumulative_sum
+    - raw_alarm_if_count_at_least_min_instances_and_statistic_strictly_greater_than_lambda
+  alarm_reset:
+    record_alarm_before_reset: true
+    reset_count_mean_cumulative_sum_minimum: true
+    preserve_alarm_count: true
+    retain_last_alarm_statistic_for_audit_until_next_score: true
+    preserve_frozen_scales: true
+    preserve_last_observed_centroid_and_population_baseline: true
+  absent_or_nan_signal: no_detector_update_and_no_alarm; invalid_nonfinite_computed_signal_is_scientific_error
+  operationalization:
+    raw_to_operational_grouping: [detector, scope, client_id, window_id]
+    representative: first_in_stable_canonical_order
+    global_maximum_operational_alarms_per_dataset_window: 1
+    local_maximum_operational_alarms_per_client_window: 1
+    operational_alarm_is_not_training_or_aggregation: true
+    trigger_requires_strategy_participation_rule: true
+  confirmation:
+    load_final_development_detector_state: true
+    clone_independent_state_per_execution: true
+    calibration_state_not_shared_mutably_between_runs: true
+development_calibration:
+  executed_in_this_stage: false
+  first_pass:
+    scope: development_only
+    compute: global_feature_shifts_population_shifts_and_valid_local_shifts
+    fit_scales: empirical_q95_higher_float64
+  freeze_after_first_pass:
+    scales_and_hashes: required
+    no_confirmation_access_before_freeze: true
+  second_pass:
+    scope: development_only
+    normalize_signals_and_run_page_hinkley_in_canonical_temporal_order: true
+    build_final_detector_states: true
+    count_global_operational_alarms_for_periodic_budget: true
+  serialize:
+    scales: true
+    final_detector_states: true
+    global_and_local_alarm_counts: true
+    last_global_centroid_and_available_client_set: true
+    last_active_centroid_per_client: true
+    hashes_and_schema: true
+  confirmation:
+    load_calibrated_states_and_schedule_only: true
+    refit_scales_or_parameters: false
+    labels_or_supervised_outcomes_used_for_calibration: false
+  calibration_common_across_strategies: true
+  calibration_independent_of_supervised_results: true
+page_hinkley_global:
+  detector_state_scope: one_per_dataset_calibration_artifact
+  runtime_state: immutable_calibration_template_cloned_per_run
+  signal: unlabeled_signal.global
+  alarm_participants: all_clients_available_and_supervised_eligible
+  ineligible_or_inactive_clients: no_update
+  alarm_with_no_eligible_clients:
+    record_alarm: true
+    adaptation_started: false
+    aggregation: false
+  new_model_effective_from_next_window: true
+page_hinkley_local:
+  detector_state_scope: one_per_registered_client_in_calibration_artifact
+  runtime_state: immutable_calibration_template_cloned_per_run
+  signal: unlabeled_signal.local
+  inactive_client_state_persists: true
+  inactive_client_detector_updated: false
+  returning_client_compares_last_active_window: true
+  participants: operationally_alarmed_available_supervised_eligible_clients_only
+  updates_same_window: gather_all_then_at_most_one_server_aggregation
+  no_clusters_dynamic_model_bank_or_reassignment: true
+  labels_used: false
+  feddrift_equivalence_claimed: false
+periodic_budget:
+  unit: global_operational_page_hinkley_alarm_count_per_dataset_in_development_second_pass
+  formula: B_dataset = global_operational_alarm_count_in_development
+  independent_of_model_seed: true
+  confirmation_used_to_derive_budget: false
+  B_zero: no_confirmation_adaptation_no_promotion_to_one
+  B_greater_than_confirmation_windows: block_run_no_silent_truncation
+  schedule: scheduled_window_k = floor(k * (N + 1) / (B + 1))
+  k_range: 1_through_B
+  preconfirmation_freeze: schedule_computed_and_frozen_before_confirmation_payload_open
+  validate:
+    indices_in_1_to_N: true
+    exactly_B_indices: true
+    strictly_increasing: true
+    no_duplicates: true
+  schedule_semantics:
+    budget_matches: development_global_page_hinkley_operational_alarm_count_not_future_confirmation_alarm_count
+    active_participants: all_available_supervised_eligible_clients
+    max_aggregations_per_scheduled_window: 1
+    inactive_clients_no_updates: true
+    model_effective_from_next_window: true
+  unknown_labels: not_used
+strategies:
+  - id: static_global
+    initial_state: shared_frozen_dataset_model_seed_state
+    client_state: none
+    server_state: initial_model_only
+    participants: none_for_training
+    evaluation: every_window_before_any_update
+    training: never
+    communication: inference_only_no_training_state_transfer
+    aggregation: never
+    version: unchanged
+    detector: none
+    persistence: immutable_initial_state
+    cost: inference_and_evaluation_only;initial_state_cost_excluded
+    no_eligible_clients: record_window_no_update
+  - id: local_only
+    initial_state: identical_shared_state_cloned_locally_for_clients
+    client_state: persistent_client_local_model
+    server_state: none_after_initial_distribution
+    participants: available_supervised_eligible_clients
+    evaluation: before_current_window_local_training
+    training: each_available_eligible_client_per_protocol_schedule
+    communication: initial_distribution_only;no_federated_update_traffic
+    aggregation: never
+    version: local_versions_only;no_global_version
+    detector: none
+    persistence: per_client_local_model_and_counters
+    cost: local_training_and_any_actual_initial_distribution
+    no_eligible_clients: no_training_no_update
+  - id: continuous_fedavg
+    initial_state: shared_frozen_dataset_model_seed_state
+    client_state: optimizer_reset_per_local_invocation_as_model_contract
+    server_state: global_model
+    participants: all_available_supervised_eligible_clients_each_window
+    evaluation: before_current_window_training
+    training: every_window_with_eligible_clients
+    communication: download_to_each_selected_client_and_upload_each_completed_update
+    aggregation: example_weighted_fedavg_once_per_nonempty_window
+    version: once_per_completed_aggregation
+    detector: none
+    persistence: global_model_and_run_counters
+    cost: cost_accounting_actual_communication_and_processing_counters
+    no_eligible_clients: no_training_no_communication_no_aggregation_no_version
+  - id: continuous_fedprox
+    initial_state: shared_frozen_dataset_model_seed_state
+    client_state: frozen_global_snapshot_per_invocation;mu_0.01
+    server_state: global_model
+    participants: all_available_supervised_eligible_clients_each_window
+    evaluation: before_current_window_training
+    training: every_window_with_eligible_clients_using_fedprox_objective
+    communication: same_actual_participant_rule_as_continuous_fedavg
+    aggregation: example_weighted_fedavg_once_per_nonempty_window
+    version: once_per_completed_aggregation
+    detector: none
+    persistence: global_model;no_proximal_state_between_invocations
+    cost: cost_accounting_actual_communication_and_processing_counters
+    no_eligible_clients: no_training_no_communication_no_aggregation_no_version
+  - id: continuous_fedyogi
+    initial_state: shared_frozen_dataset_model_seed_state
+    client_state: optimizer_reset_per_invocation_as_model_contract
+    server_state: global_model_plus_run_local_m_v_moments
+    participants: all_available_supervised_eligible_clients_each_window
+    evaluation: before_current_window_training
+    training: every_window_with_eligible_clients
+    communication: actual_model_downloads_and_client_updates_only
+    aggregation: weighted_delta_fedyogi_once_per_nonempty_window
+    version: once_per_completed_aggregation
+    detector: none
+    persistence: server_moments_across_rounds_within_run
+    cost: cost_accounting_actual_communication_and_processing;capped_server_state_not_networked
+    no_eligible_clients: all_server_model_moments_version_counts_unchanged
+  - id: periodic_budget_matched
+    initial_state: shared_frozen_dataset_model_seed_state
+    client_state: optimizer_reset_per_local_invocation_as_model_contract
+    server_state: global_model;dataset_budget_and_schedule_frozen_preconfirmation
+    participants: all_available_supervised_eligible_clients_on_scheduled_windows
+    evaluation: before_scheduled_current_window_training
+    training: only_on_frozen_schedule
+    communication: only_actual_selected_participants
+    aggregation: example_weighted_fedavg_once_per_nonempty_scheduled_window
+    version: once_per_completed_aggregation
+    detector: development_global_page_hinkley_only_to_derive_budget
+    persistence: budget_schedule_and_execution_progress_per_run
+    cost: cost_accounting_actual_cost;budget_count_is_development_global_operational_alarms
+    no_eligible_clients: no_update_no_aggregation_no_version_budget_schedule_remains_fixed
+  - id: triggered_page_hinkley_local
+    initial_state: shared_frozen_dataset_model_seed_state
+    client_state: per_client_detector_template_and_local_optimizer_reset
+    server_state: global_model
+    participants: alarmed_available_supervised_eligible_clients
+    evaluation: before_signal_update_and_adaptation
+    training: operational_local_alarm_and_eligibility
+    communication: only_clients_with_actual_update
+    aggregation: gather_all_updates_then_one_example_weighted_fedavg_per_window
+    version: once_per_nonempty_aggregation;effective_next_window
+    detector: one_unlabeled_page_hinkley_per_registered_client
+    persistence: detector_states_initialized_from_development_and_cloned_per_run
+    cost: cost_accounting_actual_alarm_training_communication_aggregation_counters
+    no_eligible_clients: record_alarm_no_adaptation_no_aggregation_no_version
+  - id: triggered_page_hinkley_global
+    initial_state: shared_frozen_dataset_model_seed_state
+    client_state: optimizer_reset_per_adaptation_invocation
+    server_state: global_model_plus_global_detector_template
+    participants: all_available_supervised_eligible_clients_after_global_alarm
+    evaluation: before_signal_update_and_adaptation
+    training: global_operational_alarm_and_nonempty_eligible_population
+    communication: only_clients_with_actual_update
+    aggregation: gather_all_updates_then_one_example_weighted_fedavg_per_window
+    version: once_per_nonempty_aggregation;effective_next_window
+    detector: one_unlabeled_page_hinkley_per_dataset_template_cloned_per_run
+    persistence: detector_state_cloned_from_shared_development_calibration
+    cost: cost_accounting_actual_alarm_training_communication_aggregation_counters
+    no_eligible_clients: record_alarm_no_adaptation_no_aggregation_no_version
+causal_window_order:
+  steps:
+    - open_current_window_only
+    - identify_availability_without_labels
+    - perform_pre_adaptation_inference
+    - record_metrics_only_for_known_targets_and_do_not_feed_back
+    - compute_unlabeled_feature_and_population_signals
+    - update_detectors
+    - record_raw_and_operational_alarms
+    - select_participants_by_strategy_availability_and_supervised_eligibility
+    - train_and_adapt_if_scheduled_or_triggered
+    - aggregate_only_if_updates_exist
+    - increment_version_only_after_completed_aggregation
+    - new_model_applies_to_future_windows_only
+  current_window_rescored_after_adaptation: false
+  detector_receives_labels_metrics_supervised_loss_or_landmarks: false
+consumer_aliases:
+  frozen_manifests_modified: false
+  exact_nominal_names_map_additively: true
+  historical_periodic_fedavg_fedprox_fedyogi_to_periodic_budget_matched: forbidden
+  feddrift_eager_to_triggered_page_hinkley_local: forbidden
+  historical_incompatible_names_retained: true
+  future_consumers_per_state_per_dataset: 8
+costs:
+  initial_state_cost_shared_across_eight_strategies: true
+  initial_state_construction_excluded_from_comparative_costs: true
+  communication_counts_only_model_arrays_actually_sent_received: true
+  fedyogi_server_moments_counted_as_client_communication: false
+  alarm_training_update_aggregation_version_counters_separate: true
+  no_physical_network_bandwidth_or_energy_claim: true
+calibration_procedure:
+  calibration_in_this_stage: false
+  order: [development_pass_1_distances, freeze_scales_and_hashes, development_pass_2_signals_and_detectors, derive_and_freeze_periodic_budget_and_schedule, serialize_states_counts_and_hashes]
+  confirmation_opens_only_after_calibration_artifacts_and_schedule_frozen: true
+outputs:
+  final: reports/main_matrix_strategy_contract
+  incomplete: reports/main_matrix_strategy_contract.incomplete

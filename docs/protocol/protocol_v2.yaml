@@ -1,0 +1,237 @@
+schema_version: 1
+protocol_id: protocol-v2
+title: Protocolo experimental V2 para adaptação federada acionada por concept drift em IDS para IIoT
+status: frozen
+prepared_at: 2026-09-21
+owner: Leonardo Oliveira dos Santos
+
+research_question:
+  primary: >-
+    Em um sistema federado de detecção de intrusões para IIoT sujeito a
+    concept drift distribuído, estratégias acionadas por drift são não
+    inferiores ao FedAvg contínuo em desempenho operacional enquanto reduzem
+    comunicação ou tempo de treinamento?
+  contribution_claim: >-
+    Adaptar menos vezes, nos momentos corretos, preservando segurança,
+    desempenho e robustez entre clientes.
+
+study_layers:
+  exploratory:
+    dataset: TON_IoT
+    role: mecanismo, ablations e compatibilidade com os estudos exploratórios anteriores
+    may_be_called_untouched_holdout: false
+  confirmatory:
+    preferred_dataset: CICIoMT2024
+    fallback_order:
+      - Edge-IIoTset
+      - CICIDS2017
+    selection_uses_model_performance: false
+    final_windows_may_be_used_for_tuning: false
+
+confirmatory_partition:
+  boundary_inputs:
+    - timestamp
+    - pooled_row_count
+  timestamp_ties_are_atomic: true
+  labels_define_boundaries: false
+  client_ids_define_boundaries: false
+  development_prefix_fraction: 0.20
+  confirmation_suffix_fraction: 0.80
+  boundary_rounding: first_atomic_timestamp_group_reaching_target
+
+external_dataset_gates:
+  all_required: true
+  checks:
+    - stable_timestamp_or_defensible_observational_order
+    - mutually_exclusive_operational_client_assignment
+    - at_least_four_active_clients
+    - at_least_three_clients_with_two_class_support_in_development
+    - auditable_binary_target
+    - identifiers_excluded_from_model_features
+    - leakage_sentinels_passed
+    - viable_for_two_models_and_five_seeds
+  failure_policy: record_failure_before_training_and_try_next_fallback
+
+primary_hypotheses:
+  H1_noninferiority:
+    estimand: paired_difference_in_unweighted_mean_window_macro_f1
+    contrast: triggered_page_hinkley_global_minus_continuous_fedavg
+    margin: -0.02
+    confidence_level: 0.95
+    support_rule: lower_confidence_bound_greater_than_margin
+  H2_efficiency:
+    minimum_relative_reduction: 0.30
+    acceptable_cost_endpoints:
+      - total_model_communication_bytes
+      - cumulative_training_seconds
+    support_rule: at_least_one_endpoint_meets_reduction_without_violating_H1
+  H3_operational_safety:
+    guardrails:
+      normal_recall_absolute_degradation_maximum: 0.03
+      false_positive_rate_absolute_increase_maximum: 0.03
+    evaluated_on:
+      - aggregate
+      - lower_tail_10_percent_windows
+      - worst_client
+    support_rule: all_guardrails_pass
+  H4_localization:
+    scope: controlled_drift_benchmark
+    endpoints:
+      - detection_delay
+      - false_alarms_per_million_events
+      - affected_client_localization
+  H5_generalization:
+    support_rule: effect_direction_preserved_on_confirmatory_dataset
+
+primary_decision:
+  success_requires:
+    - H1_noninferiority
+    - H2_efficiency
+    - H3_operational_safety
+    - H5_generalization
+  negative_results_are_reported: true
+  post_confirmation_metric_switching_allowed: false
+
+models:
+  - id: logistic_regression
+    family: linear
+    output: sigmoid
+    class_weighting: development_only
+    regularization_selection: development_only
+  - id: mlp_64_32
+    family: neural_network
+    hidden_units: [64, 32]
+    activation: relu
+    output: sigmoid
+    gradient_clipping: true
+    class_weighting: development_only
+
+threshold_selection:
+  source: development_only
+  candidates:
+    start: 0.05
+    stop: 0.95
+    step: 0.01
+  objective: maximize_macro_f1
+  tie_breaker: lower_false_positive_rate
+  adaptive_threshold_in_confirmation: false
+
+seeds:
+  - 20260920
+  - 20260921
+  - 20260922
+  - 20260923
+  - 20260924
+
+strategies:
+  primary:
+    - static_global
+    - local_only
+    - continuous_fedavg
+    - continuous_fedprox
+    - continuous_fedyogi
+    - periodic_budget_matched
+    - feddrift_eager
+    - triggered_page_hinkley_global
+  secondary:
+    - triggered_ddm_global
+    - triggered_page_hinkley_local
+    - triggered_ddm_local
+  controlled_benchmark_only:
+    - oracle_true_drift
+
+primary_strategy:
+  id: triggered_page_hinkley_global
+  rationale: >-
+    Escolha anterior ao dataset confirmatório; no estudo exploratório apresentou
+    melhor compromisso operacional que DDM, com menos alarmes e maior precisão
+    contra os marcos diagnósticos.
+  detector_events_may_trigger_multiple_updates: false
+  maximum_adaptations_per_stream_per_window: 1
+
+development_grids:
+  fedprox_mu: [0.001, 0.01, 0.1]
+  fedyogi_server_learning_rate: [0.01, 0.05, 0.1]
+  page_hinkley:
+    delta: [0.001, 0.005, 0.01]
+    threshold: [25, 50, 100]
+    warmup_examples: [100, 500]
+  ddm:
+    warning_level: [2.0]
+    drift_level: [3.0]
+    minimum_examples: [100, 500]
+  selection_scope: development_and_controlled_benchmark_only
+
+controlled_drift_benchmark:
+  scenarios:
+    - abrupt_global
+    - gradual_global
+    - staggered_local
+    - recurrent
+    - no_drift
+  intensities: [low, medium, high]
+  seeds: use_protocol_seeds
+  ground_truth_available_to_detector: false
+  oracle_is_deployable_method: false
+
+primary_metrics:
+  - macro_f1
+  - normal_recall
+  - false_positive_rate
+  - attack_recall
+  - pr_auc
+  - balanced_accuracy
+secondary_metrics:
+  - worst_client_macro_f1
+  - client_macro_f1_gap
+  - lower_tail_10_percent_macro_f1
+  - detection_delay
+  - alarm_precision
+  - drift_recall
+  - false_alarms_per_million_events
+  - model_communication_bytes
+  - training_seconds
+  - inference_seconds
+  - peak_memory_bytes
+  - client_participation_rate
+
+statistical_analysis:
+  resampling: paired_temporal_block_bootstrap
+  bootstrap_repetitions: 10000
+  confidence_level: 0.95
+  pairing_keys:
+    - dataset
+    - model
+    - seed
+    - window_id
+  secondary_multiplicity_correction: holm
+  report_effect_sizes: true
+  report_all_seeds: true
+
+causal_controls:
+  prediction_precedes_label_observation: true
+  scoring_precedes_current_window_update: true
+  future_windows_loaded_early: false
+  campaign_labels_available_to_detector: false
+  controlled_drift_labels_available_to_detector: false
+  identifiers_are_model_features: false
+  empty_client_window_is_a_concept: false
+
+minimum_execution_matrix:
+  datasets: 2
+  models: 2
+  seeds: 5
+  primary_strategies: 8
+  minimum_primary_runs: 160
+
+freeze_requirements:
+  required_before_external_confirmation:
+    - approve_this_manifest
+    - record_manifest_sha256
+    - implement_config_validation
+    - freeze_container_and_source_commit
+    - pass_build_lint_and_tests
+  amendments:
+    allowed_only_before_confirmation: true
+    require_reason_and_diff: true
+    require_new_manifest_hash: true

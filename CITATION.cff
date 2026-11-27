@@ -1,0 +1,45 @@
+cff-version: 1.2.0
+message: "If you use this software in academic work, please cite it using the metadata below."
+title: "Temporal evaluation of drift-adaptation strategies in federated IDS"
+type: software
+authors:
+  - family-names: "Oliveira dos Santos"
+    given-names: "Leonardo"
+version: "0.1.0"
+url: "https://github.com/Leonardo1952/federated-ids-temporal-adaptation"
+license: MIT
+abstract: "Code and scientific documentation for a leakage-controlled temporal evaluation of eight concept-drift adaptation strategies for federated intrusion detection in IIoT (TON_IoT and Gotham 2025; logistic regression and MLP; 160 plans). The MIT license covers the author-written material in this distribution; datasets and derived aggregates, states and calibrations are not included (see docs/artifacts.md)."
+keywords:
+  - federated learning
+  - concept drift
+  - intrusion detection
+  - IIoT
+references:
+  - type: dataset
+    title: "A Device-Level IoT Network Traffic Dataset with Distributed Capture and Non-IID Characteristics"
+    authors:
+      - family-names: "Belarbi"
+        given-names: "Othmane"
+      - family-names: "Spyridopoulos"
+        given-names: "Theodoros"
+      - family-names: "Anthi"
+        given-names: "Eirini"
+      - family-names: "Rana"
+        given-names: "Omer"
+      - family-names: "Carnelli"
+        given-names: "Pietro"
+      - family-names: "Khan"
+        given-names: "Aftab"
+    year: 2025
+    publisher:
+      name: "Zenodo"
+    doi: "10.5281/zenodo.14502760"
+    license: CC-BY-4.0
+  - type: article
+    title: "A new distributed architecture for evaluating AI-based security systems at the edge: Network TON_IoT datasets"
+    authors:
+      - family-names: "Moustafa"
+        given-names: "Nour"
+    journal: "Sustainable Cities and Society"
+    year: 2021
+    start: "102994"
